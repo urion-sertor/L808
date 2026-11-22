@@ -1,7 +1,7 @@
 """Formatos JSON de entrada y salida de los endpoints de servicios (Pol)."""
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from .clientes import MensajeOut  # noqa: F401  (mismo formato de error que el resto de la API)
 
 DURACIONES_PERMITIDAS = (30, 60, 120, 300)
 PRECIO_MAXIMO = 9999.99  # la columna es DECIMAL(6,2)
@@ -14,7 +14,17 @@ class ServicioIn(BaseModel):
     descripcion: str = Field(max_length=255, examples=["Mezcla y master de un tema"])
     duracion_min: int = Field(examples=[60])
     precio: float = Field(examples=[30.0])
-    activo_app: Optional[bool] = Field(default=None, examples=[True])
+    activo_app: bool = Field(default=True, examples=[True])
+
+    @model_validator(mode="before")
+    @classmethod
+    def textos_que_faltan(cls, datos):
+        """Si no se envía nombre o descripción, se tratan como vacíos para dar el mensaje del Figma."""
+        if isinstance(datos, dict):
+            for campo in ("nombre", "descripcion"):
+                if datos.get(campo) is None:
+                    datos[campo] = ""
+        return datos
 
     @field_validator("nombre")
     @classmethod
@@ -36,7 +46,7 @@ class ServicioIn(BaseModel):
     @classmethod
     def duracion_permitida(cls, v: int) -> int:
         if v not in DURACIONES_PERMITIDAS:
-            raise ValueError("Duración no permitida (30, 60, 120 o 300 minutos)")
+            raise ValueError("Duración no permitida")
         return v
 
     @field_validator("precio")
@@ -64,7 +74,3 @@ class ServicioOut(BaseModel):
     duracion_min: int
     precio: float
     activo_app: bool
-
-
-class MensajeOut(BaseModel):
-    detail: str

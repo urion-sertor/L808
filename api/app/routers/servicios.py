@@ -88,6 +88,7 @@ def ver_servicio(id_servicio: int, db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
     summary="Crear servicio (pantalla E-06 Crear servicio)",
     responses={
+        400: {"model": MensajeOut, "description": "Datos no válidos (nombre, descripción, duración o precio)"},
         401: {"model": MensajeOut},
         409: {"model": MensajeOut, "description": "Nombre repetido"},
     },
@@ -104,7 +105,7 @@ def crear_servicio(
         descripcion=datos.descripcion,
         duracion_min=datos.duracion_min,
         precio=datos.precio,
-        activo_app=True if datos.activo_app is None else datos.activo_app,
+        activo_app=datos.activo_app,
     )
     db.add(servicio)
     db.commit()
@@ -117,8 +118,9 @@ def crear_servicio(
     response_model=ServicioOut,
     summary="Editar servicio (pantalla E-06b Editar servicio)",
     responses={
+        400: {"model": MensajeOut, "description": "Datos no válidos (nombre, descripción, duración o precio)"},
         401: {"model": MensajeOut},
-        404: {"model": MensajeOut},
+        404: {"model": MensajeOut, "description": "El servicio no existe"},
         409: {"model": MensajeOut, "description": "Nombre repetido"},
     },
 )
@@ -135,8 +137,7 @@ def editar_servicio(
     servicio.descripcion = datos.descripcion
     servicio.duracion_min = datos.duracion_min
     servicio.precio = datos.precio
-    if datos.activo_app is not None:  # si no se envía, se queda como estaba
-        servicio.activo_app = datos.activo_app
+    servicio.activo_app = datos.activo_app  # opcional, por defecto true
     db.commit()
     db.refresh(servicio)
     return servicio
@@ -146,7 +147,11 @@ def editar_servicio(
     "/{id_servicio}/visibilidad",
     response_model=ServicioOut,
     summary="Activar o desactivar «Visible en la app» (pantallas E-05 y E-06b)",
-    responses={401: {"model": MensajeOut}, 404: {"model": MensajeOut}},
+    responses={
+        400: {"model": MensajeOut, "description": "Falta activo_app o no es true/false"},
+        401: {"model": MensajeOut},
+        404: {"model": MensajeOut, "description": "El servicio no existe"},
+    },
 )
 def cambiar_visibilidad(
     id_servicio: int,
