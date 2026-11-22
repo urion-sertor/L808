@@ -6,6 +6,9 @@ venv/
 __pycache__/
 *.pyc
 
+# Fotos de avatar subidas en local
+api/uploads/
+
 # Configuración local con contraseñas (se sube solo .env.example)
 .env
 
