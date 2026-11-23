@@ -11,6 +11,14 @@ class LoginTrabajadorIn(BaseModel):
     password: str = Field(min_length=1, examples=["recepcion808"])
 
 
+class ReservaEscritorioCreateIn(BaseModel):
+    id_servicio: int = Field(gt=0, examples=[1])
+    inicio: datetime = Field(examples=["2026-12-05T19:00:00"])
+    origen: str = Field(examples=["TELEFONO"])
+    telefono: Optional[str] = Field(default=None, examples=["600 222 999"])
+    id_cliente: Optional[int] = Field(default=None, examples=[4])
+
+
 # ---------------------------------------------------------------- salida: perfil y login
 class TrabajadorOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
