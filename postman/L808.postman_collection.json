@@ -1,0 +1,3118 @@
+{
+  "info": {
+    "_postman_id": "d6b923c7-8913-5016-a2f2-76fc8f798c72",
+    "name": "L808 API",
+    "description": "Colección de pruebas de toda la API de L808 (Sprint 2).\n\nCómo lanzarla: reimporta database/l808.sql en phpMyAdmin, arranca la API, elige el entorno «L808 local» y pulsa Run en la colección (Runner). Los logins guardan los tokens solos en token_cliente y token_trabajador.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0 Sistema",
+      "description": "¿Responde la API y la base de datos?",
+      "item": [
+        {
+          "name": "Salud · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Base de datos ok\", () => pm.expect(pm.response.json().base_de_datos).to.eql(\"ok\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/salud",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salud"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 Clientes (Enrique)",
+      "description": "Registro, login y perfil del cliente (app móvil). Token: {{token_cliente}}.",
+      "item": [
+        {
+          "name": "Registro · OK (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Devuelve token y cliente\", () => { const j = pm.response.json(); pm.expect(j.access_token).to.be.a(\"string\"); pm.expect(j.cliente).to.not.have.property(\"password_hash\"); });",
+                  "pm.collectionVariables.set(\"token_registro\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/registro",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "registro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_artistico\": \"Test {{$timestamp}}\",\n  \"email\": \"test{{$timestamp}}@l808.com\",\n  \"telefono\": \"6{{$timestamp}}\",\n  \"password\": \"cabina808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Registro · email repetido (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/registro",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "registro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_artistico\": \"Otro Groma\",\n  \"email\": \"djgroma@gmail.com\",\n  \"password\": \"cabina808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Registro · email mal escrito (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Dice qué campo falla\", () => pm.expect(pm.response.json().errores[0].campo).to.eql(\"email\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/registro",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "registro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_artistico\": \"Sin Email\",\n  \"email\": \"esto-no-es-un-email\",\n  \"password\": \"cabina808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login cliente · contraseña mala (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"djgroma@gmail.com\",\n  \"password\": \"malamala\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login cliente · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"token_cliente\", pm.response.json().access_token);",
+                  "pm.test(\"Es Dj Groma\", () => pm.expect(pm.response.json().cliente.nombre_artistico).to.eql(\"Dj Groma\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"djgroma@gmail.com\",\n  \"password\": \"cabina808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Perfil · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Tiene sesiones_hechas\", () => pm.expect(pm.response.json()).to.have.property(\"sesiones_hechas\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Perfil · sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Editar perfil · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Color cambiado\", () => pm.expect(pm.response.json().avatar_color).to.eql(\"#7AA7FF\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_completo\": \"Guillem Rodríguez\",\n  \"avatar_color\": \"#7AA7FF\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar perfil · nombre artístico repetido (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_artistico\": \"MC Kroma\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar perfil · color no válido (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avatar_color\": \"rojo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Subir avatar · sin archivo (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me/avatar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me",
+                "avatar"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            }
+          }
+        },
+        {
+          "name": "Quitar avatar · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Sin foto\", () => pm.expect(pm.response.json().avatar_url).to.be.null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me/avatar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me",
+                "avatar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cambiar contraseña · actual incorrecta (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password_actual\": \"noesesta\",\n  \"password_nueva\": \"nuevaClave808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cambiar contraseña · OK (200) (cuenta recién registrada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clientes/me/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "me",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password_actual\": \"cabina808\",\n  \"password_nueva\": \"nuevaClave808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_registro}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token_cliente}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "2 Servicios (Pol)",
+      "description": "Catálogo de servicios. Los GET públicos no llevan token; la gestión usa {{token_trabajador}}.",
+      "item": [
+        {
+          "name": "Login trabajador (Dani) · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"token_trabajador\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trabajadores/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "trabajadores",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"dani.recepcion\",\n  \"password\": \"recepcion808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Servicios app · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"4 servicios, sin el videoclip\", () => { const j = pm.response.json(); pm.expect(j.length).to.eql(4); pm.expect(j.map(s => s.id_servicio)).to.not.include(5); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Detalle servicio · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Es Batalla grabada\", () => pm.expect(pm.response.json().nombre).to.eql(\"Batalla grabada\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "2"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Detalle servicio · desactivado (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "5"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Detalle servicio · no existe (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "999"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Gestión servicios · sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/gestion",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "gestion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Gestión servicios · token de cliente (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/gestion",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "gestion"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_cliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Gestión servicios · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"5 servicios, también el videoclip\", () => pm.expect(pm.response.json().length).to.eql(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/gestion",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "gestion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear servicio · nombre vacío y precio -5 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Revisa los 2 campos\", () => pm.expect(pm.response.json().errores.length).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"descripcion\": \"Sin nombre\",\n  \"duracion_min\": 60,\n  \"precio\": -5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear servicio · duración no permitida (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sesión de hora y media\",\n  \"descripcion\": \"1 h 30\",\n  \"duracion_min\": 90,\n  \"precio\": 35.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear servicio · nombre repetido (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Batalla grabada\",\n  \"descripcion\": \"Dos MCs, vídeo y audio\",\n  \"duracion_min\": 60,\n  \"precio\": 25.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear servicio · sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Servicio sin token\",\n  \"descripcion\": \"No se crea\",\n  \"duracion_min\": 60,\n  \"precio\": 25.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Crear servicio · OK (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Visible en la app por defecto\", () => pm.expect(pm.response.json().activo_app).to.be.true);",
+                  "pm.collectionVariables.set(\"id_servicio_nuevo\", pm.response.json().id_servicio);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sesión de mezcla {{$timestamp}}\",\n  \"descripcion\": \"Mezcla y master de un tema\",\n  \"duracion_min\": 60,\n  \"precio\": 30.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar servicio · precio a 30 € (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Precio 30\", () => pm.expect(pm.response.json().precio).to.eql(30));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "2"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Batalla grabada\",\n  \"descripcion\": \"Dos MCs, vídeo y audio\",\n  \"duracion_min\": 60,\n  \"precio\": 30.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar servicio · nombre de otro servicio (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/{{id_servicio_nuevo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{id_servicio_nuevo}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Freestyle exprés\",\n  \"descripcion\": \"Mezcla y master de un tema\",\n  \"duracion_min\": 60,\n  \"precio\": 30.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar servicio · no existe (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"No existe\",\n  \"descripcion\": \"No existe\",\n  \"duracion_min\": 60,\n  \"precio\": 30.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar servicio · duración no permitida (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "2"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Batalla grabada\",\n  \"descripcion\": \"Dos MCs, vídeo y audio\",\n  \"duracion_min\": 45,\n  \"precio\": 30.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Desactivar servicio 1 · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Desactivado\", () => pm.expect(pm.response.json().activo_app).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/1/visibilidad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "1",
+                "visibilidad"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo_app\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Servicios app · ya no sale el 1 (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"No sale el servicio 1\", () => pm.expect(pm.response.json().map(s => s.id_servicio)).to.not.include(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Visibilidad · sin activo_app (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/1/visibilidad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "1",
+                "visibilidad"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Visibilidad · no existe (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/999/visibilidad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "999",
+                "visibilidad"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo_app\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Activar servicio 1 otra vez · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Activado\", () => pm.expect(pm.response.json().activo_app).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/1/visibilidad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "1",
+                "visibilidad"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo_app\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token_trabajador}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "3 Reservas móvil (Adrián)",
+      "description": "Disponibilidad, reservar, mis reservas y cancelar. Token: {{token_cliente}} (Dj Groma).",
+      "item": [
+        {
+          "name": "Disponibilidad · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "const f = pm.response.json().franjas;",
+                  "const libre = h => f.find(x => x.inicio === \"2026-12-04T\" + h + \":00\").libre;",
+                  "pm.test(\"De 19:00 a 21:00 libre\", () => [\"19:00\", \"19:30\", \"20:00\", \"20:30\", \"21:00\"].forEach(h => pm.expect(libre(h)).to.be.true));",
+                  "pm.test(\"Desde 21:30 ocupado\", () => pm.expect(libre(\"21:30\")).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/disponibilidad?fecha=2026-12-04&id_servicio=2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-12-04"
+                },
+                {
+                  "key": "id_servicio",
+                  "value": "2"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Disponibilidad · domingo (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/disponibilidad?fecha=2026-12-06&id_servicio=2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-12-06"
+                },
+                {
+                  "key": "id_servicio",
+                  "value": "2"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Disponibilidad · servicio desactivado (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/disponibilidad?fecha=2026-12-04&id_servicio=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-12-04"
+                },
+                {
+                  "key": "id_servicio",
+                  "value": "5"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · OK (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Código L808-A040\", () => pm.expect(pm.response.json().codigo_reserva).to.eql(\"L808-A040\"));",
+                  "pm.test(\"Origen APP\", () => pm.expect(pm.response.json().origen).to.eql(\"APP\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-12-04T20:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · franja ocupada (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Estudio lleno\", () => pm.expect(pm.response.json().detail).to.include(\"Estudio lleno\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-12-04T22:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · domingo (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-12-06T20:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · 15:00 fuera de horario (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-12-07T15:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · acabaría a las 04:30 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-12-08T03:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · fecha pasada (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-11-13T21:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · servicio desactivado (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 5,\n  \"inicio\": \"2026-12-09T20:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva · sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_servicio\": 2,\n  \"inicio\": \"2026-12-09T20:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Mis reservas próximas · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Incluye A040 y A037\", () => { const c = pm.response.json().map(r => r.codigo_reserva); pm.expect(c).to.include.members([\"L808-A040\", \"L808-A037\"]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/mias?tipo=proximas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "mias"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "proximas"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mis reservas historial · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Incluye A007, A005, A004 y A002\", () => { const c = pm.response.json().map(r => r.codigo_reserva); pm.expect(c).to.include.members([\"L808-A007\", \"L808-A005\", \"L808-A004\", \"L808-A002\"]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/mias?tipo=historial",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "mias"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "historial"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mis reservas · sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/mias?tipo=proximas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "mias"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "proximas"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Detalle reserva · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/L808-A034",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "L808-A034"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle reserva · de otro cliente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/L808-A035",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "L808-A035"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar reserva · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Cancelada\", () => pm.expect(pm.response.json().estado).to.eql(\"CANCELADA\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/L808-A037/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "L808-A037",
+                "cancelar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar reserva · ya cancelada (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/L808-A037/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "L808-A037",
+                "cancelar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar reserva · de otro cliente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reservas/L808-A035/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "L808-A035",
+                "cancelar"
+              ]
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token_cliente}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "4 Escritorio (Oriol)",
+      "description": "Login de trabajadores y agenda de recepción. Token: {{token_trabajador}} (Dani).",
+      "item": [
+        {
+          "name": "Login trabajador · contraseña mala (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trabajadores/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "trabajadores",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"dani.recepcion\",\n  \"password\": \"malamala\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login trabajador · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"token_trabajador\", pm.response.json().access_token);",
+                  "pm.test(\"Rol ENCARGADO\", () => pm.expect(pm.response.json().trabajador.rol).to.eql(\"ENCARGADO\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trabajadores/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "trabajadores",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"dani.recepcion\",\n  \"password\": \"recepcion808\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Trabajador me · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Es Dani\", () => pm.expect(pm.response.json().usuario).to.eql(\"dani.recepcion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trabajadores/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "trabajadores",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda · token de cliente (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda?fecha=2026-11-13",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-13"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_cliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda · sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda?fecha=2026-11-13",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-13"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Agenda del viernes 13 · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json().reservas;",
+                  "pm.test(\"A033, A036 y A034 en orden\", () => pm.expect(r.map(x => x.codigo_reserva)).to.eql([\"L808-A033\", \"L808-A036\", \"L808-A034\"]));",
+                  "pm.test(\"A033 registrada por Dani y A034 por la app\", () => { pm.expect(r[0].registrada_por.nombre).to.eql(\"Dani García\"); pm.expect(r[2].registrada_por).to.be.null; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda?fecha=2026-11-13",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-13"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda · fecha mal escrita (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda?fecha=13-11-2026",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "13-11-2026"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar reservas · Kroma (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"A035, A006, A003 y A001, sin Dj Groma\", () => pm.expect(pm.response.json().map(x => x.codigo_reserva)).to.eql([\"L808-A035\", \"L808-A006\", \"L808-A003\", \"L808-A001\"]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/buscar?cliente=Kroma&desde=2026-11-01&hasta=2026-11-30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "cliente",
+                  "value": "Kroma"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-11-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-11-30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar reservas · Pedro Soler sin resultados (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\", () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/buscar?cliente=Pedro Soler",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "cliente",
+                  "value": "Pedro Soler"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar clientes · Marta (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Sale Marta Ruiz\", () => pm.expect(pm.response.json().length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/clientes?q=Marta",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "clientes"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Marta"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear reserva escritorio · OK por teléfono (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"A nombre de Marta Ruiz\", () => pm.expect(j.cliente.nombre_artistico).to.eql(\"Marta Ruiz\"));",
+                  "pm.test(\"Registrada por Dani\", () => pm.expect(j.registrada_por.nombre).to.eql(\"Dani García\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"600 222 999\",\n  \"id_servicio\": 1,\n  \"inicio\": \"2026-12-05T19:00:00\",\n  \"origen\": \"TELEFONO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva escritorio · cliente sin cuenta (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"699 999 999\",\n  \"id_servicio\": 1,\n  \"inicio\": \"2026-12-09T19:00:00\",\n  \"origen\": \"TELEFONO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva escritorio · franja ocupada (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Estudio lleno\", () => pm.expect(pm.response.json().detail).to.include(\"Estudio lleno\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"600 222 999\",\n  \"id_servicio\": 1,\n  \"inicio\": \"2026-12-04T23:30:00\",\n  \"origen\": \"PRESENCIAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva escritorio · origen APP (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"600 222 999\",\n  \"id_servicio\": 1,\n  \"inicio\": \"2026-12-09T19:00:00\",\n  \"origen\": \"APP\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear reserva escritorio · teléfono e id_cliente a la vez (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"600 222 999\",\n  \"id_cliente\": 4,\n  \"id_servicio\": 1,\n  \"inicio\": \"2026-12-09T19:00:00\",\n  \"origen\": \"TELEFONO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Marcar realizada · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Realizada\", () => pm.expect(pm.response.json().estado).to.eql(\"REALIZADA\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas/L808-A033/realizada",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas",
+                "L808-A033",
+                "realizada"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar realizada · repetido (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas/L808-A033/realizada",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas",
+                "L808-A033",
+                "realizada"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar realizada · aún no ha empezado (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas/L808-A039/realizada",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas",
+                "L808-A039",
+                "realizada"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar realizada · no existe (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas/L808-A999/realizada",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas",
+                "L808-A999",
+                "realizada"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar reserva escritorio · OK (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Cancelada\", () => pm.expect(pm.response.json().estado).to.eql(\"CANCELADA\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas/L808-A039/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas",
+                "L808-A039",
+                "cancelar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar reserva escritorio · ya cancelada (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Devuelve 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agenda/reservas/L808-A039/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "reservas",
+                "L808-A039",
+                "cancelar"
+              ]
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token_trabajador}}",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "token_registro",
+      "value": ""
+    },
+    {
+      "key": "id_servicio_nuevo",
+      "value": ""
+    }
+  ]
+}
